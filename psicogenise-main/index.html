@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<!-- Cabeçalho: metadados e links de estilo. Adicione <meta name="description"> aqui se desejar SEO. -->
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Psicogenise</title>
+		<link rel="stylesheet" href="styles.css">
+	</head>
+	<body>
+		<!-- Camada onde as "nuvens" (elementos interativos) são renderizadas dinamicamente via JavaScript -->
+		<div id="cloud-layer"></div>
+		<main class="card">
+			<!-- Botão principal dentro do card: elemento semanticamente correto para interações (substitui usar <img role="button">) -->
+			<button class="cloud-gif-button" aria-pressed="false" aria-label="Tocar som">
+				<img src="som.gif" alt="Tocar som" class="cloud-gif" />
+			</button>
+			<!-- Campo de texto principal. `aria-label` fornece descrição para leitores de tela -->
+			<input type="text" class="cloud-input" placeholder="Digite..." aria-label="Campo de texto principal" />
+		</main>
+		<!-- Script principal: carregado externamente em app.js para melhor cache e manutenção -->
+		<script src="app.js" defer></script>
+	</body>
+</html>

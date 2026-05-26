@@ -1,0 +1,68 @@
+aluno_id,texto,gabarito,nivel,score,nivel_erro
+1,b t c,bola toca casa,pre-silabico,6,alto
+2,a o e,amor e escola,pre-silabico,5,alto
+3,m n p,mãe na praia,silabico-alfabetico,6,alto
+4,c v l,cavalo veloz,silabico-alfabetico,5,alto
+5,p t r,pato corre rápido,silabico-alfabetico,6,alto
+6,b l n,bola na neve,silabico-alfabetico,6,alto
+7,d r s,dado rosa,pre-silabico,5,alto
+8,f g h,fogo grande hoje,silabico-alfabetico,6,alto
+9,j k l,jogo legal,silabico-alfabetico,5,alto
+10,q w e,quero ver escola,silabico-alfabetico,6,alto
+11,ca sa bo ni ta,casa bonita,pre-silabico,7,alto
+12,me ni no bra ca,menino brinca,alfabetico,7,alto
+13,pa to na la go,pato no lago,silabico,7,alto
+14,bo la ro la,bola rola,silabico,6,alto
+15,ca cho ro la te,cachorro late,alfabetico,7,alto
+16,ga to su biu,gato subiu,pre-silabico,6,alto
+17,me sa gran de,mesa grande,pre-silabico,6,alto
+18,pa o que jo,pão com queijo,pre-silabico,7,alto
+19,a mo ro so,amoroso,pre-silabico,5,alto
+20,vi da bo ni ta,vida bonita,pre-silabico,7,alto
+21,caza boni ta,casa bonita,silabico-alfabetico,4,alto
+22,meninu brinca,menino brinca,silabico,1,moderado
+23,pato no lago,pato no lago,fluente,0,baixo
+24,cachoro late,cachorro late,silabico,2,moderado
+25,gatu subiu arvore,gato subiu arvore,fluente,1,moderado
+26,bola rola rua,bola rola na rua,silabico-alfabetico,3,moderado
+27,eu gosta come,eu gosto de comer,silabico-alfabetico,4,alto
+28,menina foi escola,menina foi na escola,fluente,3,moderado
+29,pao com queijo,pão com queijo,silabico-alfabetico,1,moderado
+30,dia ta lindo,dia está lindo,silabico-alfabetico,2,moderado
+31,casa bonita,casa bonita,fluente,0,baixo
+32,menino brinca bola,menino brinca bola,fluente,0,baixo
+33,o gato subiu na arvore,o gato subiu na árvore,alfabetico,1,moderado
+34,eu gosto de comer pão,eu gosto de comer pão,fluente,0,baixo
+35,a menina foi na escola ontem,a menina foi na escola ontem,fluente,0,baixo
+36,o cachorro late alto,o cachorro late alto,fluente,0,baixo
+37,a bola rolou na rua,a bola rolou na rua,fluente,0,baixo
+38,o dia está bonito,o dia está bonito,fluente,0,baixo
+39,o sol brilha forte,o sol brilha forte,fluente,0,baixo
+40,a casa é grande,a casa é grande,fluente,0,baixo
+41,o menino brincava feliz no parque,o menino brincava feliz no parque,fluente,0,baixo
+42,a menina estudou bastante para a prova,a menina estudou bastante para a prova,fluente,0,baixo
+43,o cachorro correu rapidamente pela rua,o cachorro correu rapidamente pela rua,fluente,0,baixo
+44,o gato observava tudo em silêncio,o gato observava tudo em silêncio,fluente,0,baixo
+45,a escola promove atividades educativas,a escola promove atividades educativas,fluente,0,baixo
+46,o aluno respondeu corretamente a questão,o aluno respondeu corretamente a questão,fluente,0,baixo
+47,a professora explicou o conteúdo com clareza,a professora explicou o conteúdo com clareza,fluente,0,baixo
+48,o dia estava ensolarado e agradável,o dia estava ensolarado e agradável,fluente,0,baixo
+49,a leitura é fundamental para o aprendizado,a leitura é fundamental para o aprendizado,fluente,0,baixo
+50,o desenvolvimento da escrita exige prática,o desenvolvimento da escrita exige prática,fluente,0,baixo
+123456789,a bola caiu,a bola caiu,alfabetico,0,baixo
+123456789,pato,pato,pre-silabico,0,baixo
+123456789,gato,gato,pre-silabico,0,baixo
+123456789,gato,gato,pre-silabico,0,baixo
+123456789,bola,bola,pre-silabico,0,baixo
+123456789,casa,casa,pre-silabico,0,baixo
+123456789,a bola caiu,a bola caiu,alfabetico,0,baixo
+36445795,bola,bola,pre-silabico,0,baixo
+36445795,gto,gato,pre-silabico,2,moderado
+36445795,caza,casa,pre-silabico,1,moderado
+36445795,pato,pato,pre-silabico,0,baixo
+36445795,a bola cai,a bola caiu,silabico-alfabetico,2,moderado
+152920,casa,casa,pre-silabico,0,baixo
+152920,pato,pato,pre-silabico,0,baixo
+152920,gto,gato,pre-silabico,2,moderado
+152920,a bola cai,a bola caiu,silabico-alfabetico,2,moderado
+152920,bola,bola,pre-silabico,0,baixo

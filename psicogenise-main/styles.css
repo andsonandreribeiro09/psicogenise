@@ -1,0 +1,189 @@
+:root {
+  --bg: #f7f9fc;
+  --card: #ffffff;
+  --text: rgb(0, 0, 255);
+  --muted: #6b7280;
+  --cloud-size: 500px;
+  --radius: 12px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Reset/box model */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  /* Corpo: fundo, centralização e animação suave de drift */
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  background-image: url('fundo.jpg');
+  background-size: 110% 110%;
+  background-position: center;
+  background-repeat: no-repeat;
+  animation: bgDrift 22s ease-in-out infinite alternate;
+}
+
+.card {
+  /* Card fixo na parte inferior da tela; cuidado com teclado virtual em mobile */
+  background: rgba(255,255,255,0.92);
+  padding: 1.25rem 1.75rem;
+  border-radius: calc(var(--radius) * 0.85);
+  text-align: center;
+  max-width: 48rem;
+  width: min(92%, 48rem);
+  position: fixed; /* fix at bottom */
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.student-panel {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  width: min(92%, 42rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0, 0, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(20, 40, 80, 0.12);
+}
+
+.student-panel span {
+  color: #1f2937;
+  font-size: 0.92rem;
+}
+
+h1 { margin: 0 0 0.5rem 0; font-size: 2rem; }
+p { margin: 0; color: var(--muted); }
+
+/* Utilities */
+.text-center { text-align: center; }
+.mt-2 { margin-top: .5rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  body { padding: 1rem; }
+  .card { padding: 0.75rem 1rem; border-radius: 8px; bottom: 12px; gap: 0.4rem; }
+  .student-panel { top: 10px; flex-direction: column; gap: 0.15rem; font-size: 0.9rem; }
+  h1 { font-size: 1.25rem; }
+}
+
+@media (min-width: 1200px) {
+  .card { max-width: 48rem; }
+}
+
+/* Cloud layer and cloud items */
+#cloud-layer {
+  position: absolute;
+  inset: 0;
+  /* Layer onde as nuvens são montadas dinamicamente. pointer-events none
+     permite que o card (z-index maior) receba interações enquanto nuvens
+     individuais podem ativar pointer-events:auto para serem clicáveis. */
+  pointer-events: none;
+  z-index: 1; /* behind the card (card has z-index:1) */
+  overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  background-image: url('nuvem.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  /* Will-change usado para otimizar animações, mas evitar abuso */
+  will-change: transform;
+  transition: transform 8s linear;
+  z-index: 0;
+  animation: floatCloud 12s ease-in-out infinite;
+  width: var(--cloud-size);
+  height: calc(var(--cloud-size) * 0.6);
+  max-width: 90vw;
+}
+
+.cloud-input {
+  width: 60%;
+  max-width: 80%;
+  padding: 0 0.75rem;
+  height: calc(var(--cloud-size) * 0.12);
+  min-height: 28px;
+  max-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgb(0, 0, 255);
+  background: rgb(255, 255, 255);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1;
+  /* text-transform: uppercase dificulta leitura em algumas línguas; remova se preferir */
+  text-transform: uppercase;
+}
+
+.cloud-gif {
+  height: calc(var(--cloud-size) * 0.12);
+  min-height: 28px;
+  max-height: 44px;
+  width: auto;
+  margin-right: 0.5rem;
+  pointer-events: auto;
+  display: block;
+}
+
+.gif-button {
+  cursor: pointer;
+  user-select: none;
+}
+
+.cloud-gif-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.gif-button:focus {
+  outline: 3px solid rgb(0, 0, 255);
+  outline-offset: 2px;
+}
+
+.gif-button.pressed {
+  transform: none;
+}
+
+@keyframes floatCloud {
+  0% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(10px) translateY(-6px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+@keyframes bgDrift {
+  0% { background-position: 48% 50%; }
+  50% { background-position: 52% 48%; }
+  100% { background-position: 50% 52%; }
+}
