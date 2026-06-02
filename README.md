@@ -217,7 +217,10 @@ git remote -v
 
 O frontend original inclui um arquivo `LICENSE` dentro da pasta `psicogenise-main/`. Antes de publicar, confirme tambem a origem e permissao de uso das imagens e assets visuais.
 
-## Autores
+## Autor 1
 
-Andson Andre da Silva Ribeiro
-Maria Paula de Oliveira Fonseca
+Andson Andre da Silva Ribeiro.
+
+## Autor 2
+
+Maria Paula de Oliveira Fonseca.
