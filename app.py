@@ -1573,4 +1573,5 @@ def conversar_com_assistente(n_clicks, pergunta, aluno_id):
 # ▶️ RUN
 # ============================================
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.getenv("PORT", 8050))
+    app.run(host="0.0.0.0", port=port, debug=False)
