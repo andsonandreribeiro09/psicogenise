@@ -1,236 +1,41 @@
-aluno,correto,tipo,distancia,aluno_id
-b,bola,omissao,3,1
-t,toca,omissao,3,1
-c,casa,omissao,3,1
-a,amor,omissao,3,2
-o,e,substituicao,1,2
-e,escola,omissao,5,2
-m,mãe,omissao,2,3
-n,na,omissao,1,3
-p,praia,omissao,4,3
-c,cavalo,omissao,5,4
-v,veloz,omissao,4,4
-l,,adicao,1,4
-p,pato,omissao,3,5
-t,corre,omissao,5,5
-r,rápido,omissao,5,5
-b,bola,omissao,3,6
-l,na,omissao,2,6
-n,neve,omissao,3,6
-d,dado,omissao,3,7
-r,rosa,omissao,3,7
-s,,adicao,1,7
-f,fogo,omissao,3,8
-g,grande,omissao,5,8
-h,hoje,omissao,3,8
-j,jogo,omissao,3,9
-k,legal,omissao,5,9
-l,,adicao,1,9
-q,quero,omissao,4,10
-w,ver,omissao,3,10
-e,escola,omissao,5,10
-ca,casa,omissao,2,11
-sa,bonita,omissao,5,11
-bo,,adicao,2,11
-ni,,adicao,2,11
-ta,,adicao,2,11
-me,menino,omissao,4,12
-ni,brinca,omissao,5,12
-no,,adicao,2,12
-bra,,adicao,3,12
-ca,,adicao,2,12
-pa,pato,omissao,2,13
-to,no,substituicao,1,13
-na,lago,omissao,3,13
-la,,adicao,2,13
-go,,adicao,2,13
-bo,bola,omissao,2,14
-la,rola,omissao,2,14
-ro,,adicao,2,14
-la,,adicao,2,14
-ca,cachorro,omissao,6,15
-cho,late,omissao,4,15
-ro,,adicao,2,15
-la,,adicao,2,15
-te,,adicao,2,15
-ga,gato,omissao,2,16
-to,subiu,omissao,5,16
-su,,adicao,2,16
-biu,,adicao,3,16
-me,mesa,omissao,2,17
-sa,grande,omissao,5,17
-gran,,adicao,4,17
-de,,adicao,2,17
-pa,pão,omissao,2,18
-o,com,omissao,2,18
-que,queijo,omissao,3,18
-jo,,adicao,2,18
-a,amoroso,omissao,6,19
-mo,,adicao,2,19
-ro,,adicao,2,19
-so,,adicao,2,19
-vi,vida,omissao,2,20
-da,bonita,omissao,5,20
-bo,,adicao,2,20
-ni,,adicao,2,20
-ta,,adicao,2,20
-caza,casa,substituicao,1,21
-boni,bonita,omissao,2,21
-ta,,adicao,2,21
-meninu,menino,substituicao,1,22
-brinca,brinca,correto,0,22
-pato,pato,correto,0,23
-no,no,correto,0,23
-lago,lago,correto,0,23
-cachoro,cachorro,omissao,1,24
-late,late,correto,0,24
-gatu,gato,substituicao,1,25
-subiu,subiu,correto,0,25
-arvore,arvore,correto,0,25
-bola,bola,correto,0,26
-rola,rola,correto,0,26
-rua,na,adicao,2,26
-,rua,omissao,3,26
-eu,eu,correto,0,27
-gosta,gosto,substituicao,1,27
-come,de,adicao,3,27
-,comer,omissao,5,27
-menina,menina,correto,0,28
-foi,foi,correto,0,28
-escola,na,adicao,5,28
-,escola,omissao,6,28
-pao,pão,substituicao,1,29
-com,com,correto,0,29
-queijo,queijo,correto,0,29
-dia,dia,correto,0,30
-ta,está,omissao,3,30
-lindo,lindo,correto,0,30
-casa,casa,correto,0,31
-bonita,bonita,correto,0,31
-menino,menino,correto,0,32
-brinca,brinca,correto,0,32
-bola,bola,correto,0,32
-o,o,correto,0,33
-gato,gato,correto,0,33
-subiu,subiu,correto,0,33
-na,na,correto,0,33
-arvore,árvore,substituicao,1,33
-eu,eu,correto,0,34
-gosto,gosto,correto,0,34
-de,de,correto,0,34
-comer,comer,correto,0,34
-pão,pão,correto,0,34
-a,a,correto,0,35
-menina,menina,correto,0,35
-foi,foi,correto,0,35
-na,na,correto,0,35
-escola,escola,correto,0,35
-ontem,ontem,correto,0,35
-o,o,correto,0,36
-cachorro,cachorro,correto,0,36
-late,late,correto,0,36
-alto,alto,correto,0,36
-a,a,correto,0,37
-bola,bola,correto,0,37
-rolou,rolou,correto,0,37
-na,na,correto,0,37
-rua,rua,correto,0,37
-o,o,correto,0,38
-dia,dia,correto,0,38
-está,está,correto,0,38
-bonito,bonito,correto,0,38
-o,o,correto,0,39
-sol,sol,correto,0,39
-brilha,brilha,correto,0,39
-forte,forte,correto,0,39
-a,a,correto,0,40
-casa,casa,correto,0,40
-é,é,correto,0,40
-grande,grande,correto,0,40
-o,o,correto,0,41
-menino,menino,correto,0,41
-brincava,brincava,correto,0,41
-feliz,feliz,correto,0,41
-no,no,correto,0,41
-parque,parque,correto,0,41
-a,a,correto,0,42
-menina,menina,correto,0,42
-estudou,estudou,correto,0,42
-bastante,bastante,correto,0,42
-para,para,correto,0,42
-a,a,correto,0,42
-prova,prova,correto,0,42
-o,o,correto,0,43
-cachorro,cachorro,correto,0,43
-correu,correu,correto,0,43
-rapidamente,rapidamente,correto,0,43
-pela,pela,correto,0,43
-rua,rua,correto,0,43
-o,o,correto,0,44
-gato,gato,correto,0,44
-observava,observava,correto,0,44
-tudo,tudo,correto,0,44
-em,em,correto,0,44
-silêncio,silêncio,correto,0,44
-a,a,correto,0,45
-escola,escola,correto,0,45
-promove,promove,correto,0,45
-atividades,atividades,correto,0,45
-educativas,educativas,correto,0,45
-o,o,correto,0,46
-aluno,aluno,correto,0,46
-respondeu,respondeu,correto,0,46
-corretamente,corretamente,correto,0,46
-a,a,correto,0,46
-questão,questão,correto,0,46
-a,a,correto,0,47
-professora,professora,correto,0,47
-explicou,explicou,correto,0,47
-o,o,correto,0,47
-conteúdo,conteúdo,correto,0,47
-com,com,correto,0,47
-clareza,clareza,correto,0,47
-o,o,correto,0,48
-dia,dia,correto,0,48
-estava,estava,correto,0,48
-ensolarado,ensolarado,correto,0,48
-e,e,correto,0,48
-agradável,agradável,correto,0,48
-a,a,correto,0,49
-leitura,leitura,correto,0,49
-é,é,correto,0,49
-fundamental,fundamental,correto,0,49
-para,para,correto,0,49
-o,o,correto,0,49
-aprendizado,aprendizado,correto,0,49
-o,o,correto,0,50
-desenvolvimento,desenvolvimento,correto,0,50
-da,da,correto,0,50
-escrita,escrita,correto,0,50
-exige,exige,correto,0,50
-prática,prática,correto,0,50
-a,a,correto,0,123456789
-bola,bola,correto,0,123456789
-caiu,caiu,correto,0,123456789
-pato,pato,correto,0,123456789
-gato,gato,correto,0,123456789
-gato,gato,correto,0,123456789
-bola,bola,correto,0,123456789
-casa,casa,correto,0,123456789
-a,a,correto,0,123456789
-bola,bola,correto,0,123456789
-caiu,caiu,correto,0,123456789
-bola,bola,correto,0,36445795
-gto,gato,omissao,1,36445795
-caza,casa,substituicao,1,36445795
-pato,pato,correto,0,36445795
-a,a,correto,0,36445795
-bola,bola,correto,0,36445795
-cai,caiu,omissao,1,36445795
-casa,casa,correto,0,152920
-pato,pato,correto,0,152920
-gto,gato,omissao,1,152920
-a,a,correto,0,152920
-bola,bola,correto,0,152920
-cai,caiu,omissao,1,152920
-bola,bola,correto,0,152920
+aluno,correto,tipo,distancia,aluno_id,nome,matricula
+sol,sol,correto,0,15292005,Anderson Andre,15292005
+lefant,elefante,omissao,2,15292005,Anderson Andre,15292005
+banana,banana,correto,0,15292005,Anderson Andre,15292005
+gatu,gato,fonologico,1,15292005,Anderson Andre,15292005
+,o,omissao,1,15292005,Anderson Andre,15292005
+gato,gato,correto,0,15292005,Anderson Andre,15292005
+,faz,omissao,3,15292005,Anderson Andre,15292005
+mial,miau,fonologico,1,15292005,Anderson Andre,15292005
+banana,banana,correto,0,36445795,Laryssa Soares,36445795
+o,o,correto,0,36445795,Laryssa Soares,36445795
+gato,gato,correto,0,36445795,Laryssa Soares,36445795
+faz,faz,correto,0,36445795,Laryssa Soares,36445795
+miau,miau,correto,0,36445795,Laryssa Soares,36445795
+gato,gato,correto,0,36445795,Laryssa Soares,36445795
+sol,sol,correto,0,36445795,Laryssa Soares,36445795
+elefante,elefante,correto,0,36445795,Laryssa Soares,36445795
+sol,sol,correto,0,20260115,Joao Pedro,20260115
+gato,gato,correto,0,20260115,Joao Pedro,20260115
+banana,banana,correto,0,20260115,Joao Pedro,20260115
+elefante,elefante,correto,0,20260115,Joao Pedro,20260115
+,o,omissao,1,20260115,Joao Pedro,20260115
+gato,gato,correto,0,20260115,Joao Pedro,20260115
+,faz,omissao,3,20260115,Joao Pedro,20260115
+mial,miau,fonologico,1,20260115,Joao Pedro,20260115
+sol,sol,correto,0,30609080,Jose Henrique,30609080
+gato,gato,correto,0,30609080,Jose Henrique,30609080
+bana,banana,omissao,2,30609080,Jose Henrique,30609080
+elef,elefante,omissao,4,30609080,Jose Henrique,30609080
+,o,omissao,1,30609080,Jose Henrique,30609080
+gato,gato,correto,0,30609080,Jose Henrique,30609080
+,faz,omissao,3,30609080,Jose Henrique,30609080
+miau,miau,correto,0,30609080,Jose Henrique,30609080
+sol,sol,correto,0,508090101,Melyssa Silva,508090101
+gato,gato,correto,0,508090101,Melyssa Silva,508090101
+banana,banana,correto,0,508090101,Melyssa Silva,508090101
+elefante,elefante,correto,0,508090101,Melyssa Silva,508090101
+o,o,correto,0,508090101,Melyssa Silva,508090101
+gato,gato,correto,0,508090101,Melyssa Silva,508090101
+faz,faz,correto,0,508090101,Melyssa Silva,508090101
+miau,miau,correto,0,508090101,Melyssa Silva,508090101

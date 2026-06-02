@@ -8,6 +8,8 @@ env/
 .DS_Store
 Thumbs.db
 *.lnk
+*.pdf
+rag_base.txt
 
 cadastros_alunos.csv
 submissoes_frontend.csv

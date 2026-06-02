@@ -20,9 +20,12 @@ O projeto foi criado para validar um fluxo simples de diagnostico:
 - Fala em portugues usando sintese de voz do navegador.
 - Quatro palavras simples e uma frase curta para avaliacao.
 - Processamento automatico de respostas com distancia de edicao.
+- Tokenizacao e metricas textuais com NLTK.
+- Estimativa de nivel com classificador Naive Bayes do NLTK.
 - Classificacao de erros: correto, omissao, adicao, substituicao e fonologico.
 - Calculo de score e nivel de erro.
 - Recomendacoes pedagogicas com base nos tipos de erro.
+- Apoio RAG para enriquecer as intervencoes do professor com um PDF pedagogico local.
 - Dashboard em Dash para visualizacao das metricas pelo professor.
 - Salvamento dos resultados em arquivos CSV.
 
@@ -31,8 +34,10 @@ O projeto foi criado para validar um fluxo simples de diagnostico:
 - Python
 - Flask
 - Dash
+- NLTK
 - Pandas
 - Plotly
+- PyPDF
 - HTML
 - CSS
 - JavaScript
@@ -94,6 +99,69 @@ http://127.0.0.1:8050/
 | `/api/cloud-inputs` | Recebe resposta dos campos das nuvens |
 | `/api/sound` | Endpoint de som auxiliar |
 | `/finalizar` | Finaliza o teste e volta ao cadastro |
+
+## RAG Para Intervencoes
+
+O campo **Intervencoes** do dashboard pode usar um PDF pedagogico local como base RAG. Por padrao, o projeto procura o PDF configurado no `app.py`.
+
+Para usar outro caminho, defina a variavel de ambiente antes de iniciar o app:
+
+```powershell
+$env:PSICOGENISE_RAG_PDF="C:\caminho\para\material.pdf"
+py app.py
+```
+
+O PDF nao deve ser enviado para o GitHub. Ele fica ignorado pelo `.gitignore`.
+
+Observacao: se o PDF for escaneado como imagem, o Python nao consegue extrair texto diretamente. Nesse caso, gere um OCR do material e salve como `rag_base.txt` na raiz do projeto, ou informe outro arquivo de texto:
+
+```powershell
+$env:PSICOGENISE_RAG_TEXT="C:\caminho\para\base_ocr.txt"
+py app.py
+```
+
+### Uso Com LM Studio
+
+Se o LM Studio estiver rodando com uma API local compativel com OpenAI, o backend tenta gerar uma intervencao textual mais rica em:
+
+```text
+http://127.0.0.1:1234/v1/chat/completions
+```
+
+Tambem e possivel alterar esse endpoint:
+
+```powershell
+$env:LM_STUDIO_URL="http://127.0.0.1:1234/v1/chat/completions"
+py app.py
+```
+
+Se o LM Studio estiver desligado, o sistema continua funcionando e usa recomendacoes internas com apoio dos trechos recuperados do PDF.
+
+### Uso Com Agente GPT Pela API OpenAI
+
+Para passar a intervencao por um agente GPT, configure uma chave da API OpenAI antes de iniciar o app. Nao coloque a chave dentro do codigo.
+
+```powershell
+$env:OPENAI_API_KEY="sua-chave-da-api"
+$env:OPENAI_MODEL="gpt-5"
+py app.py
+```
+
+Fluxo usado pelo sistema:
+
+```text
+metricas do aluno -> RAG busca trechos em rag_base.txt -> agente GPT gera intervencao -> dashboard
+```
+
+O prompt enviado ao agente inclui nome, serie, matricula, respostas digitadas, gabaritos, acertos, erros e tipos de erro do aluno selecionado no dashboard. Esses dados sao usados como contexto da intervencao atual; o modelo nao e treinado permanentemente com os dados do aluno.
+
+Ordem de fallback:
+
+1. Agente GPT via OpenAI API, se `OPENAI_API_KEY` existir.
+2. LM Studio local, se estiver rodando.
+3. Regras internas do sistema.
+
+Observacao: assinatura ChatGPT Plus/Pro e uso da OpenAI API sao cobrancas separadas. O backend precisa de uma chave de API para chamar o modelo.
 
 ## Fluxo de Uso
 

@@ -2,3 +2,6 @@ dash
 flask
 pandas
 plotly
+pypdf
+pymupdf
+nltk
