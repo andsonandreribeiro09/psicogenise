@@ -1,0 +1,26 @@
+createdAt,nome,serie,matricula,source,input_id,texto,gabarito,nivel,score,nivel_erro,recomendacoes
+2026-06-02T00:48:53.366Z,Anderson Andre,1 Ano,15292005,cloud,cloud-input-1,sol,sol,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T00:49:08.024Z,Anderson Andre,1 Ano,15292005,cloud,cloud-input-4,lefant,elefante,silabico-alfabetico,2,moderado,Reforco focado nos principais erros | Treinar segmentacao silabica | Consolidar escrita completa das palavras
+2026-06-02T00:49:17.678Z,Anderson Andre,1 Ano,15292005,cloud,cloud-input-3,banana,banana,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T00:49:27.672Z,Anderson Andre,1 Ano,15292005,cloud,cloud-input-2,gatu,gato,alfabetico,1,moderado,Reforco focado nos principais erros | Exercicios fonema-grafema
+2026-06-02T00:49:45.063Z,Anderson Andre,1 Ano,15292005,main,main-input-5,gato mial,o gato faz miau,pre-silabico,5,alto,Intervencao intensiva com acompanhamento individual | Treinar segmentacao silabica | Exercicios fonema-grafema
+2026-06-02T00:55:15.840Z,Laryssa Soares,1 Ano,36445795,cloud,cloud-input-3,banana,banana,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T00:55:36.234Z,Laryssa Soares,1 Ano,36445795,main,main-input-5,o gato faz miau,o gato faz miau,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T00:55:44.341Z,Laryssa Soares,1 Ano,36445795,cloud,cloud-input-2,gato,gato,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T00:55:51.683Z,Laryssa Soares,1 Ano,36445795,cloud,cloud-input-1,sol,sol,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T00:55:57.291Z,Laryssa Soares,1 Ano,36445795,cloud,cloud-input-4,elefante,elefante,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:10:37.770Z,Joao Pedro,1 Ano,20260115,cloud,cloud-input-1,sol,sol,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:10:42.802Z,Joao Pedro,1 Ano,20260115,cloud,cloud-input-2,gato,gato,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:10:47.552Z,Joao Pedro,1 Ano,20260115,cloud,cloud-input-3,banana,banana,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:10:53.252Z,Joao Pedro,1 Ano,20260115,cloud,cloud-input-4,elefante,elefante,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:11:09.177Z,Joao Pedro,1 Ano,20260115,main,main-input-5,gato mial,o gato faz miau,pre-silabico,7,alto,Intervencao intensiva com acompanhamento individual | Treinar segmentacao silabica | Consciencia fonologica
+2026-06-02T01:15:10.593Z,Jose Henrique,1 Ano,30609080,cloud,cloud-input-1,sol,sol,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:15:16.191Z,Jose Henrique,1 Ano,30609080,cloud,cloud-input-2,gato,gato,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:15:20.909Z,Jose Henrique,1 Ano,30609080,cloud,cloud-input-3,bana,banana,silabico-alfabetico,2,moderado,Reforco focado nos principais erros | Treinar segmentacao silabica | Consolidar escrita completa das palavras
+2026-06-02T01:15:30.022Z,Jose Henrique,1 Ano,30609080,cloud,cloud-input-4,elef,elefante,pre-silabico,2,moderado,Reforco focado nos principais erros | Treinar segmentacao silabica
+2026-06-02T01:15:48.730Z,Jose Henrique,1 Ano,30609080,main,main-input-5,gato miau,o gato faz miau,pre-silabico,4,alto,Intervencao intensiva com acompanhamento individual | Treinar segmentacao silabica
+2026-06-02T01:48:34.433Z,Melyssa Silva,1 Ano,508090101,cloud,cloud-input-1,sol,sol,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:48:34.570Z,Melyssa Silva,1 Ano,508090101,cloud,cloud-input-2,gato,gato,alfabetico,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:48:34.593Z,Melyssa Silva,1 Ano,508090101,cloud,cloud-input-3,banana,banana,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:48:34.622Z,Melyssa Silva,1 Ano,508090101,cloud,cloud-input-4,elefante,elefante,alfabetizado,0,baixo,Aprimoramento e pratica leve
+2026-06-02T01:48:34.653Z,Melyssa Silva,1 Ano,508090101,main,main-input-5,o gato faz miau,o gato faz miau,alfabetico,0,baixo,Aprimoramento e pratica leve
