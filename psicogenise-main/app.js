@@ -143,19 +143,24 @@
 		}
 	}
 
-	function focusNextIfReady(input) {
+	function focusNextOnEnter(input, event) {
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
 		if (!isFilled(input)) return;
 
 		const inputs = getInputs();
 		const current = inputs.indexOf(input);
-		const question = QUESTIONS[current];
-		const normalizedTyped = String(input.value || '').replace(/\s+/g, '').length;
-		const normalizedExpected = String(question.text || '').replace(/\s+/g, '').length;
-		if (normalizedTyped < normalizedExpected) return;
+		updateFlow();
 
 		const next = inputs[current + 1];
 		if (next && !next.disabled) {
-			window.setTimeout(() => next.focus(), 120);
+			next.focus();
+			return;
+		}
+
+		const finishButton = card.querySelector('.finish-button');
+		if (finishButton && !finishButton.disabled) {
+			finishButton.focus();
 		}
 	}
 
@@ -282,8 +287,8 @@
 		input.setAttribute('aria-label', question.label);
 		input.addEventListener('input', () => {
 			updateFlow();
-			focusNextIfReady(input);
 		});
+		input.addEventListener('keydown', (event) => focusNextOnEnter(input, event));
 
 		controls.append(soundButton, input);
 		item.append(badge, visual, controls);

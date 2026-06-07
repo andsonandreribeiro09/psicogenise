@@ -5,5 +5,5 @@ plotly
 pypdf
 pymupdf
 nltk
-gunicorn 
+gunicorn
 openai

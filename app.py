@@ -1,7 +1,7 @@
 # ============================================
 # 📦 IMPORTS
 # ============================================
-from dash import Dash, html, dcc, Input, Output, State
+from dash import Dash, html, dcc, Input, Output, State, ctx
 from flask import Response, jsonify, redirect, render_template_string, request, send_from_directory, session
 import pandas as pd
 import plotly.express as px
@@ -662,6 +662,71 @@ def compactar_erros_para_prompt(df_e):
     return "\n".join(linhas)
 
 
+def formatar_resultados_aluno_para_chat(aluno_info, df_a, df_e, resumo, score, nivel):
+    nome = texto_valido(aluno_info.get("nome", "")) or "Aluno sem nome"
+    serie = texto_valido(aluno_info.get("serie", "")) or "Serie nao informada"
+    matricula = texto_valido(aluno_info.get("matricula", "")) or texto_valido(aluno_info.get("aluno_id", ""))
+    nivel_erro, recomendacoes = gerar_recomendacoes(resumo, nivel, score)
+
+    linhas = [
+        f"**Resultado de {nome}**",
+        f"- Serie: {serie}",
+        f"- Matricula: {matricula}",
+        f"- Nivel: {nivel}",
+        f"- Pontuacao total: {score}",
+        f"- Nivel de erro: {nivel_erro}",
+        "",
+        "**Resumo dos registros analisados**",
+        f"- Corretos: {resumo.get('correto', 0)}",
+        f"- Omissao: {resumo.get('omissao', 0)}",
+        f"- Adicao: {resumo.get('adicao', 0)}",
+        f"- Substituicao: {resumo.get('substituicao', 0)}",
+        f"- Fonologico: {resumo.get('fonologico', 0)}",
+        "",
+        "**Escritas comparadas ao esperado**",
+    ]
+
+    if df_a is None or df_a.empty:
+        linhas.append("- Sem respostas registradas para este aluno.")
+    else:
+        erros_indexados = []
+        if df_e is not None and not df_e.empty:
+            erros_indexados = df_e.reset_index(drop=True).to_dict("records")
+
+        for index, row in df_a.reset_index(drop=True).iterrows():
+            escrito = texto_valido(row.get("texto", "")) or "(em branco)"
+            esperado = texto_valido(row.get("gabarito", "")) or "(sem gabarito)"
+            nivel_item = texto_valido(row.get("nivel", ""))
+            score_item = texto_valido(row.get("score", ""))
+
+            tipo = ""
+            distancia = ""
+            if index < len(erros_indexados):
+                tipo = texto_valido(erros_indexados[index].get("tipo", ""))
+                distancia = texto_valido(erros_indexados[index].get("distancia", ""))
+
+            detalhes = []
+            if tipo:
+                detalhes.append(f"tipo: {tipo}")
+            if distancia:
+                detalhes.append(f"distancia: {distancia}")
+            if nivel_item:
+                detalhes.append(f"nivel: {nivel_item}")
+            if score_item:
+                detalhes.append(f"score: {score_item}")
+
+            sufixo = f" | {'; '.join(detalhes)}" if detalhes else ""
+            linhas.append(f"{index + 1}. escreveu **{escrito}** | esperado **{esperado}**{sufixo}")
+
+    linhas.extend([
+        "",
+        "**Leitura pedagogica rapida**",
+        "A frase pode aparecer em mais de uma linha porque o sistema separa as palavras para comparar a escrita com o gabarito.",
+        f"Foco sugerido: {' | '.join(recomendacoes)}.",
+    ])
+    return "\n".join(linhas)
+
+
 def gerar_intervencao_rag(resumo, nivel, score, aluno_info=None, df_a=None, df_e=None):
     nivel_erro, recomendacoes = gerar_recomendacoes(resumo, nivel, score)
     contexto = buscar_contexto_rag(resumo, nivel, score)
@@ -773,11 +838,40 @@ def normalizar_pergunta(texto):
     return re.sub(r"\s+", " ", texto).strip()
 
 
-def responder_dado_direto(pergunta, aluno_info, resumo, score, nivel):
+def responder_dado_direto(pergunta, aluno_info, resumo, score, nivel, df_a=None, df_e=None):
     pergunta_normalizada = normalizar_pergunta(pergunta)
     nome = texto_valido(aluno_info.get("nome", "")) or "Aluno sem nome"
     serie = texto_valido(aluno_info.get("serie", "")) or "Serie nao informada"
     matricula = texto_valido(aluno_info.get("matricula", "")) or texto_valido(aluno_info.get("aluno_id", ""))
+
+    termos_resultado = [
+        "resultado",
+        "resultados",
+        "resposta",
+        "respostas",
+        "desempenho",
+        "relatorio",
+        "producao",
+        "producoes",
+        "escrita",
+        "escritas",
+        "gabarito",
+        "gabaritos",
+    ]
+    termos_de_orientacao = [
+        "atividade",
+        "atividades",
+        "intervencao",
+        "intervencoes",
+        "sugestao",
+        "sugestoes",
+        "aula",
+    ]
+    if (
+        any(termo in pergunta_normalizada for termo in termos_resultado)
+        and not any(termo in pergunta_normalizada for termo in termos_de_orientacao)
+    ):
+        return formatar_resultados_aluno_para_chat(aluno_info, df_a, df_e, resumo, score, nivel)
 
     if "nome" in pergunta_normalizada and "aluno" in pergunta_normalizada:
         return f"O nome do aluno selecionado e {nome}."
@@ -802,7 +896,21 @@ def responder_dado_direto(pergunta, aluno_info, resumo, score, nivel):
     return ""
 
 
-def responder_pergunta_professor(pergunta, aluno_id):
+def formatar_historico_prompt(historico):
+    historico = historico or []
+    if not historico:
+        return "Sem conversas anteriores nesta sessao."
+
+    linhas = []
+    for index, item in enumerate(historico[-8:], start=1):
+        pergunta = str(item.get("pergunta", "")).strip()
+        resposta = str(item.get("resposta", "")).strip()
+        if pergunta or resposta:
+            linhas.append(f"{index}. Professor: {pergunta}\nAssistente: {resposta}")
+    return "\n\n".join(linhas) or "Sem conversas anteriores nesta sessao."
+
+
+def responder_pergunta_professor(pergunta, aluno_id, historico=None):
     pergunta = str(pergunta or "").strip()
     if not pergunta:
         return "Digite uma pergunta para o assistente."
@@ -813,7 +921,7 @@ def responder_pergunta_professor(pergunta, aluno_id):
 
     aluno_info, df_a, df_e, resumo, score, nivel = contexto_aluno
     nivel_erro, recomendacoes = gerar_recomendacoes(resumo, nivel, score)
-    resposta_direta = responder_dado_direto(pergunta, aluno_info, resumo, score, nivel)
+    resposta_direta = responder_dado_direto(pergunta, aluno_info, resumo, score, nivel, df_a=df_a, df_e=df_e)
     if resposta_direta:
         return resposta_direta
 
@@ -829,6 +937,9 @@ def responder_pergunta_professor(pergunta, aluno_id):
     prompt = f"""
 O professor perguntou:
 {pergunta}
+
+Historico recente da conversa:
+{formatar_historico_prompt(historico)}
 
 Aluno em foco:
 - Nome: {nome}
@@ -861,6 +972,53 @@ Nao faca diagnostico clinico e nao cite literalmente o material.
         "com o som esperado e proponha uma atividade curta de reescrita mediada. "
         f"Foco inicial: {' | '.join(recomendacoes)}."
     )
+
+
+def renderizar_chat_professor(historico):
+    historico = historico or []
+    if not historico:
+        return html.Div(
+            "As perguntas e respostas desta sessao aparecerao aqui.",
+            style={
+                "color": "#64748b",
+                "fontSize": "13px",
+                "fontStyle": "italic",
+            },
+        )
+
+    mensagens = []
+    for item in historico:
+        pergunta = str(item.get("pergunta", "")).strip()
+        resposta = str(item.get("resposta", "")).strip()
+        if pergunta:
+            mensagens.append(html.Div([
+                html.Div("Professor", style={"fontSize": "11px", "fontWeight": "700", "color": "#1e3a8a"}),
+                html.Div(pergunta),
+            ], style={
+                "marginLeft": "auto",
+                "maxWidth": "82%",
+                "background": "#dbeafe",
+                "border": "1px solid rgba(37, 99, 235, 0.18)",
+                "padding": "10px 12px",
+                "borderRadius": "8px",
+                "marginBottom": "8px",
+                "color": "#0f172a",
+            }))
+        if resposta:
+            mensagens.append(html.Div([
+                html.Div("Assistente", style={"fontSize": "11px", "fontWeight": "700", "color": "#047857"}),
+                dcc.Markdown(resposta, style={"margin": "0", "lineHeight": "1.5"}),
+            ], style={
+                "maxWidth": "88%",
+                "background": "rgba(255,255,255,0.86)",
+                "border": "1px solid rgba(16, 185, 129, 0.18)",
+                "padding": "10px 12px",
+                "borderRadius": "8px",
+                "marginBottom": "8px",
+                "color": "#111827",
+            }))
+
+    return mensagens
 
 
 def analisar_resposta(texto_aluno, gabarito_texto=None):
@@ -1465,6 +1623,16 @@ def atualizar(aluno_id):
                 "color": "#1e3a8a",
                 "marginBottom": "6px",
             }),
+            dcc.Store(id="professor-chat-history", data=[]),
+            html.Div(id="professor-chat-thread", children=renderizar_chat_professor([]), style={
+                "maxHeight": "320px",
+                "overflowY": "auto",
+                "padding": "12px",
+                "borderRadius": "8px",
+                "background": "rgba(248, 250, 252, 0.62)",
+                "border": "1px dashed rgba(37, 99, 235, 0.22)",
+                "marginBottom": "10px",
+            }),
             dcc.Textarea(
                 id="professor-prompt",
                 placeholder="Ex.: Que atividade posso fazer com este aluno na proxima aula?",
@@ -1481,24 +1649,30 @@ def atualizar(aluno_id):
                     "background": "rgba(255,255,255,0.9)",
                 },
             ),
-            html.Button("Enviar pergunta", id="professor-prompt-button", n_clicks=0, style={
+            html.Div([
+                html.Button("Enviar pergunta", id="professor-prompt-button", n_clicks=0, style={
+                    "padding": "9px 14px",
+                    "borderRadius": "999px",
+                    "border": "1px solid rgba(37, 99, 235, 0.28)",
+                    "background": "#2563eb",
+                    "color": "white",
+                    "fontWeight": "700",
+                    "cursor": "pointer",
+                }),
+                html.Button("Encerrar interacao", id="professor-chat-clear", n_clicks=0, style={
+                    "padding": "9px 14px",
+                    "borderRadius": "999px",
+                    "border": "1px solid rgba(100, 116, 139, 0.28)",
+                    "background": "rgba(255,255,255,0.9)",
+                    "color": "#334155",
+                    "fontWeight": "700",
+                    "cursor": "pointer",
+                }),
+            ], style={
+                "display": "flex",
+                "gap": "8px",
+                "flexWrap": "wrap",
                 "marginTop": "8px",
-                "padding": "9px 14px",
-                "borderRadius": "999px",
-                "border": "1px solid rgba(37, 99, 235, 0.28)",
-                "background": "#2563eb",
-                "color": "white",
-                "fontWeight": "700",
-                "cursor": "pointer",
-            }),
-            html.Div(id="professor-prompt-resposta", style={
-                "marginTop": "10px",
-                "padding": "12px",
-                "borderRadius": "8px",
-                "background": "rgba(255,255,255,0.72)",
-                "border": "1px dashed rgba(37, 99, 235, 0.22)",
-                "minHeight": "42px",
-                "color": "#111827",
             }),
         ], style={
             "marginTop": "12px",
@@ -1542,31 +1716,52 @@ def atualizar(aluno_id):
 
 @app.callback(
     [
-        Output("professor-prompt-resposta", "children"),
+        Output("professor-chat-thread", "children"),
         Output("professor-prompt", "value"),
+        Output("professor-chat-history", "data"),
     ],
-    [Input("professor-prompt-button", "n_clicks")],
+    [
+        Input("professor-prompt-button", "n_clicks"),
+        Input("professor-chat-clear", "n_clicks"),
+    ],
     [
         State("professor-prompt", "value"),
         State("aluno-dropdown", "value"),
+        State("professor-chat-history", "data"),
     ],
     prevent_initial_call=True,
 )
-def conversar_com_assistente(n_clicks, pergunta, aluno_id):
-    if not n_clicks:
-        return "", ""
+def conversar_com_assistente(n_clicks, clear_clicks, pergunta, aluno_id, historico):
+    historico = historico or []
+    if ctx.triggered_id == "professor-chat-clear":
+        return renderizar_chat_professor([]), "", []
 
-    resposta = responder_pergunta_professor(pergunta, aluno_id)
-    return (
-        dcc.Markdown(
-            str(resposta or ""),
-            style={
-                "lineHeight": "1.55",
-                "whiteSpace": "pre-wrap",
-            },
-        ),
-        "",
-    )
+    if not n_clicks:
+        return renderizar_chat_professor(historico), "", historico
+
+    pergunta = str(pergunta or "").strip()
+    if not pergunta:
+        return renderizar_chat_professor(historico), "", historico
+
+    resposta = responder_pergunta_professor(pergunta, aluno_id, historico=historico)
+    historico_atualizado = historico + [{
+        "pergunta": pergunta,
+        "resposta": str(resposta or ""),
+    }]
+    return renderizar_chat_professor(historico_atualizado), "", historico_atualizado
+
+
+@app.callback(
+    [
+        Output("professor-chat-thread", "children", allow_duplicate=True),
+        Output("professor-chat-history", "data", allow_duplicate=True),
+        Output("professor-prompt", "value", allow_duplicate=True),
+    ],
+    [Input("aluno-dropdown", "value")],
+    prevent_initial_call=True,
+)
+def limpar_chat_ao_trocar_aluno(aluno_id):
+    return renderizar_chat_professor([]), [], ""
 
 
 # ============================================
