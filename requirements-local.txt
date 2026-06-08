@@ -1,0 +1,3 @@
+# Dependencias opcionais para recursos locais.
+# Nao use este arquivo no Render; o deploy deve usar requirements.txt.
+langflow

@@ -1,0 +1,692 @@
+# Documentação do Protótipo Psicogenise
+
+## 1. Apresentação do Projeto
+
+O Psicogenise é um protótipo funcional voltado ao apoio da avaliação diagnóstica inicial da alfabetização. A aplicação permite que um aluno do 1º ano realize uma atividade de escrita a partir de palavras e frase ditadas por áudio, enquanto o professor acompanha os resultados em um dashboard pedagógico.
+
+O sistema combina recursos de interface lúdica, processamento de linguagem natural, análise automática de erros, RAG com base teórica da Psicogênese da Língua Escrita e agente de intervenção pedagógica. O objetivo não é substituir a análise do professor, mas oferecer indicadores organizados para apoiar a tomada de decisão pedagógica.
+
+## 2. Objetivo Geral
+
+Desenvolver e validar um protótipo de apoio ao professor na análise de escritas iniciais de alunos em processo de alfabetização, utilizando técnicas de PLN, regras pedagógicas, RAG e agente de IA para gerar recomendações de intervenção.
+
+## 3. Objetivos Específicos
+
+- Registrar nome, série e matrícula do aluno antes da avaliação.
+- Apresentar uma tela lúdica para o aluno ouvir e escrever palavras/frase.
+- Avaliar escritas de diferentes extensões silábicas.
+- Comparar automaticamente a escrita do aluno com o gabarito esperado.
+- Classificar tipos de erro: correto, omissão, adição, substituição e fonológico.
+- Estimar nível de escrita do aluno com apoio de NLTK e regras pedagógicas.
+- Exibir métricas em dashboard para o professor.
+- Utilizar RAG com base textual da obra Psicogênese da Língua Escrita.
+- Permitir intervenção por camadas de agente: GPT-5 via API, Langflow, LM Studio e regras internas.
+- Documentar testes funcionais do protótipo.
+
+## 4. Arquitetura Geral do Sistema
+
+O protótipo segue uma arquitetura cliente-servidor, organizada em três camadas principais:
+
+1. Interface do aluno
+2. Backend de processamento
+3. Dashboard pedagógico do professor
+
+Fluxo principal:
+
+```text
+Aluno -> Tela de cadastro -> Tela de escrita -> Backend Flask -> NLTK/Regras/RAG/Agente -> Dashboard do professor
+```
+
+Fluxo do agente pedagógico:
+
+```text
+Professor -> Dashboard -> Dados do aluno -> RAG -> Camada ativa do agente -> Resposta pedagógica
+```
+
+O dashboard permite ligar e desligar as camadas do agente:
+
+```text
+GPT-5 -> Langflow -> LM Studio -> Regras internas
+```
+
+Quando uma camada está desligada ou não responde, o sistema passa para a próxima camada ligada. Se todas forem desligadas, o sistema informa que nenhuma camada ativa respondeu.
+
+## 5. Estrutura de Pastas
+
+```text
+psicogenise-main/
+|-- app.py
+|-- README.md
+|-- requirements.txt
+|-- .env
+|-- rag_base.txt
+|-- Psicogenese da lingua escrita.pdf
+|-- alunos_resultado.csv
+|-- alunos_erros_detalhados.csv
+|-- alunos_intervencao.csv
+|-- cadastros_alunos.csv
+|-- submissoes_frontend.csv
+`-- psicogenise-main/
+    |-- index.html
+    |-- app.js
+    |-- styles.css
+    |-- fundo.jpg
+    |-- nuvem.png
+    |-- som.gif
+    `-- audio/
+        |-- sol.ogg
+        |-- gato.ogg
+        |-- banana.ogg
+        |-- elefante.ogg
+        `-- frase-gato-miau.ogg
+```
+
+Observação: arquivos com dados de alunos e arquivos de configuração sensível, como `.env`, não devem ser enviados ao GitHub.
+
+## 6. Interface do Aluno
+
+A interface do aluno foi construída com HTML, CSS e JavaScript. Ela utiliza uma tela lúdica com fundo ilustrado, nuvens, figuras e botões de áudio.
+
+Antes do teste, o aluno passa por uma tela de cadastro com:
+
+- Nome do aluno
+- Série
+- Número de matrícula
+
+Após o cadastro, o aluno acessa a tela `/frontend/`, onde aparecem cinco campos de escrita:
+
+1. Uma palavra de uma sílaba: sol
+2. Uma palavra de duas sílabas: gato
+3. Uma palavra de três sílabas: banana
+4. Uma palavra de quatro sílabas: elefante
+5. Uma frase com uma palavra ditada anteriormente: o gato faz miau
+
+Cada item possui:
+
+- Figura associada ao objeto ou frase.
+- Botão de megafone para tocar o áudio.
+- Campo de escrita em branco.
+- Progressão por ordem: o próximo campo só é liberado após o anterior ser preenchido.
+- Avanço pelo teclado com Enter.
+- Botão “Finalizar teste” liberado apenas quando as cinco respostas forem preenchidas.
+
+Os áudios gravados pela professora são priorizados. Caso o arquivo de áudio não esteja disponível, o sistema pode recorrer à síntese de voz do navegador ou ao endpoint auxiliar de som.
+
+## 7. Backend
+
+O backend foi desenvolvido em Python, utilizando Flask e Dash.
+
+Principais responsabilidades do backend:
+
+- Renderizar a tela de cadastro.
+- Servir os arquivos do frontend.
+- Receber respostas do aluno.
+- Salvar respostas e cadastros em CSV.
+- Processar escritas com NLTK e regras pedagógicas.
+- Gerar métricas para o dashboard.
+- Recuperar contexto RAG.
+- Enviar prompts para GPT-5, Langflow ou LM Studio, conforme camadas ativas.
+- Gerar fallback por regras internas quando necessário.
+
+Rotas principais:
+
+```text
+/                      Tela de cadastro
+/cadastro              Recebe cadastro do aluno
+/frontend/             Tela do aluno
+/finalizar             Finaliza teste e volta ao cadastro
+/dashboard/            Dashboard do professor
+/api/messages          Recebe resposta da frase
+/api/cloud-inputs      Recebe respostas das palavras
+/api/sound             Endpoint auxiliar de áudio
+/api/agent-status      Status técnico do fluxo do agente
+```
+
+## 8. Processamento com NLTK
+
+O protótipo utiliza a biblioteca NLTK para apoiar o processamento textual.
+
+Recursos utilizados:
+
+- `nltk.word_tokenize` para tokenizar as respostas.
+- `nltk.metrics.edit_distance` para calcular distância de edição.
+- `NaiveBayesClassifier` para estimar o nível do aluno.
+
+O sistema extrai características da escrita, como:
+
+- Quantidade de palavras.
+- Tamanho médio das palavras.
+- Diversidade lexical.
+- Erro médio.
+- Score total de erros.
+
+Com base nesses atributos, o classificador estima níveis como:
+
+- pré-silábico
+- silábico
+- silábico-alfabético
+- alfabético
+- alfabetizado
+
+O nível “fluente” foi substituído por “alfabetizado”, por estar mais adequado ao contexto pedagógico do projeto.
+
+## 9. Classificação de Erros
+
+Cada resposta do aluno é comparada com o gabarito esperado. A comparação considera a distância de edição e regras específicas.
+
+Tipos de classificação:
+
+- Correto: escrita igual ao gabarito.
+- Omissão: aluno escreveu menos caracteres que o esperado.
+- Adição: aluno escreveu mais caracteres que o esperado.
+- Substituição: troca de caractere sem padrão fonológico identificado.
+- Fonológico: troca associada a proximidade sonora ou diferença mais complexa.
+
+O sistema gera um score com pesos:
+
+```text
+Omissão: peso 2
+Adição: peso 1
+Substituição: peso 1
+Fonológico: peso 3
+```
+
+Esse score apoia a classificação do nível de erro:
+
+- baixo
+- moderado
+- alto
+
+## 10. RAG com Base Pedagógica
+
+O protótipo utiliza RAG (Retrieval-Augmented Generation) para apoiar a geração das intervenções pedagógicas.
+
+Base utilizada:
+
+```text
+Psicogenese da lingua escrita.pdf
+rag_base.txt
+```
+
+O PDF da obra Psicogênese da Língua Escrita foi transformado em base textual. O arquivo `rag_base.txt` é usado para permitir a recuperação de trechos textuais. O sistema divide o conteúdo em partes menores, tokeniza os textos e seleciona os trechos mais relacionados ao desempenho do aluno.
+
+O RAG é usado como base de apoio, não como citação literal. As respostas ao professor são orientadas a:
+
+- Não citar literalmente o livro.
+- Não fazer diagnóstico clínico.
+- Não inventar dados.
+- Relacionar os erros do aluno com possibilidades de intervenção pedagógica.
+
+Fluxo RAG:
+
+```text
+Resumo de erros do aluno -> Busca em rag_base.txt -> Trechos recuperados -> Prompt do agente -> Intervenção pedagógica
+```
+
+## 11. Agente de Intervenção
+
+O dashboard possui a seção “Assistente de intervenção”, que funciona como um agente pedagógico para apoiar o professor.
+
+O agente recebe:
+
+- Nome do aluno.
+- Série.
+- Matrícula.
+- Escritas produzidas.
+- Gabaritos esperados.
+- Tipos de erro.
+- Score.
+- Nível estimado.
+- Trechos recuperados pelo RAG.
+- Histórico recente de perguntas do professor.
+
+A resposta do agente deve ser clara, objetiva, acolhedora e aplicável em sala de aula.
+
+O professor também pode conversar com o assistente por meio de um campo de perguntas. As perguntas e respostas ficam armazenadas na sessão da página até que o professor encerre a interação ou troque de aluno.
+
+## 12. Camadas do Agente
+
+Foram implementadas camadas configuráveis no dashboard. O professor ou avaliador pode ligar e desligar cada camada:
+
+- GPT-5
+- Langflow
+- LM Studio
+- Regras internas
+
+Ordem padrão configurada:
+
+```text
+OpenAI GPT -> Langflow -> LM Studio local -> Regras internas
+```
+
+Se o GPT-5 estiver desligado, o sistema tenta Langflow. Se Langflow estiver desligado ou sem fluxo configurado, tenta LM Studio. Se LM Studio estiver desligado, usa regras internas, desde que estejam ligadas.
+
+Essa configuração ajuda a validar diferentes cenários:
+
+- Uso com agente GPT via API.
+- Uso com fluxo visual no Langflow.
+- Uso com LLM local via LM Studio.
+- Uso offline com regras internas.
+
+## 13. OpenAI GPT-5 via API
+
+O protótipo pode usar a API da OpenAI para gerar intervenções pedagógicas. A chave não fica no código; ela deve ser configurada em arquivo `.env` ou variável de ambiente.
+
+Exemplo de `.env`:
+
+```text
+OPENAI_API_KEY=sua-chave-da-api
+OPENAI_MODEL=gpt-5
+AGENT_PROVIDER=openai
+AGENT_PROVIDERS=openai,langflow,lm_studio,rules
+```
+
+Observação importante: assinatura ChatGPT Plus e uso da OpenAI API são serviços separados. Para usar GPT via API, é necessário possuir chave válida e cota/crédito disponível na plataforma da OpenAI.
+
+## 14. Langflow
+
+O Langflow é utilizado como interface visual para gerenciar fluxos de IA.
+
+Fluxo recomendado:
+
+```text
+Entrada de bate-papo -> Modelo de prompt -> LM Studio -> Saída do chat
+```
+
+Configuração esperada:
+
+```text
+LANGFLOW_URL=http://127.0.0.1:7860
+LANGFLOW_FLOW_ID=id-do-fluxo
+LANGFLOW_API_KEY=opcional
+```
+
+O `FLOW_ID` é copiado da URL do fluxo no Langflow. Exemplo:
+
+```text
+http://127.0.0.1:7860/flow/id-do-seu-fluxo
+```
+
+Nesse caso, o ID do fluxo é:
+
+```text
+id-do-seu-fluxo
+```
+
+## 15. LM Studio
+
+O LM Studio permite executar um modelo local no computador. Ele atende ao requisito de LLM local.
+
+Endpoint esperado:
+
+```text
+http://127.0.0.1:1234/v1/chat/completions
+```
+
+Endpoint de teste:
+
+```text
+http://127.0.0.1:1234/v1/models
+```
+
+No protótipo, foi utilizado o modelo local:
+
+```text
+google/gemma-3-1b
+```
+
+O LM Studio pode ser usado de duas formas:
+
+1. Diretamente pelo backend.
+2. Indiretamente por um fluxo visual criado no Langflow.
+
+O LM Studio não é uma dependência Python. Ele deve ser instalado como aplicativo local no computador do avaliador ou professor. Por isso, ele não deve ser adicionado ao `requirements.txt` principal do projeto e não deve ser esperado dentro do ambiente do Render.
+
+## 16. Dashboard do Professor
+
+O dashboard foi construído com Dash e Plotly.
+
+Ele apresenta:
+
+- Lista de alunos cadastrados.
+- Nome e matrícula do aluno selecionado.
+- Nível estimado.
+- Score total.
+- Nível de erro.
+- Gráfico de erros do aluno.
+- Resumo dos tipos de erro.
+- Assistente de intervenção.
+- Botões para ligar/desligar camadas do agente.
+- Histórico de conversa com o assistente.
+- Tabela detalhada das respostas.
+- Ranking de alunos.
+- Mapa de calor da distribuição de níveis de todos os alunos.
+
+O mapa de calor permite visualizar a concentração de alunos por nível de escrita, apoiando uma leitura geral da turma.
+
+## 17. Arquivos de Dados
+
+O sistema utiliza arquivos CSV para persistência local.
+
+Arquivos principais:
+
+```text
+cadastros_alunos.csv
+submissoes_frontend.csv
+alunos_resultado.csv
+alunos_erros_detalhados.csv
+alunos_intervencao.csv
+```
+
+Esses arquivos podem conter dados pessoais dos alunos. Por isso, devem ser tratados com cuidado e não devem ser enviados ao GitHub sem revisão.
+
+## 18. Atendimento aos Requisitos da Fase 2
+
+### 18.1 Arquitetura obrigatória
+
+Requisito:
+
+```text
+Agente -> Usuário -> Banco de Dados/Ferramentas -> RAG/MCP -> Resposta
+```
+
+Aplicação no Psicogenise:
+
+```text
+Professor -> Dashboard -> CSVs/Dados do aluno -> RAG -> GPT-5/Langflow/LM Studio/Regras -> Resposta pedagógica
+```
+
+O projeto implementa dois paradigmas principais:
+
+- RAG
+- Agente
+
+MCP não foi implementado como servidor próprio nesta versão, pois o requisito pede pelo menos um paradigma e o protótipo já aplica RAG e agente. Caso a banca exija MCP especificamente, pode ser planejada uma etapa futura com duas ferramentas, por exemplo: consultar resultados do aluno e gerar intervenção pedagógica.
+
+### 18.2 Requisitos técnicos
+
+LLM Local:
+
+- Atendido por LM Studio.
+- Modelo local testado: `google/gemma-3-1b`.
+
+Interface:
+
+- Atendida por Langflow, usado para montar fluxo visual com entrada, prompt, modelo e saída.
+
+Conectividade:
+
+- Integração com OpenAI API.
+- Integração com LM Studio local.
+- Integração com Langflow.
+- Leitura de base textual local para RAG.
+
+Documentação:
+
+- Este documento descreve arquitetura, funcionamento e testes funcionais.
+
+Critérios de aceitação RAG:
+
+- Indexação/base textual: `rag_base.txt`.
+- Busca de contexto: recuperação de trechos por tokens relacionados aos erros do aluno.
+- Geração de respostas: agente usa os trechos recuperados para orientar intervenções.
+
+Critérios de aceitação Agente:
+
+- Execução de tarefas: responder perguntas do professor e gerar intervenções.
+- Memória de conversa: histórico da sessão no dashboard.
+- Uso de ferramentas/dados: consulta métricas do aluno, erros, CSVs e RAG.
+
+Critérios de aceitação MCP:
+
+- Não aplicado nesta versão.
+- Paradigmas escolhidos: RAG e Agent.
+
+## 19. Como Rodar Localmente
+
+Entre na pasta do projeto:
+
+```powershell
+cd "C:\Users\andso\Downloads\psicogenise-main"
+```
+
+Instale as dependências:
+
+```powershell
+py -m pip install -r requirements.txt
+```
+
+Crie ou edite o arquivo `.env`:
+
+```text
+OPENAI_API_KEY=sua-chave-da-api
+OPENAI_MODEL=gpt-5
+AGENT_PROVIDER=openai
+AGENT_PROVIDERS=openai,langflow,lm_studio,rules
+LANGFLOW_FLOW_ID=
+LANGFLOW_URL=http://127.0.0.1:7860
+LM_STUDIO_URL=http://127.0.0.1:1234/v1/chat/completions
+```
+
+Para instalar recursos locais opcionais, como Langflow, use ambiente separado ou o arquivo auxiliar:
+
+```powershell
+py -m pip install -r requirements-local.txt
+```
+
+Esse arquivo é apenas para uso local. O Render deve usar somente `requirements.txt`.
+
+Inicie a aplicação:
+
+```powershell
+py app.py
+```
+
+Acesse:
+
+```text
+Cadastro: http://127.0.0.1:8050/
+Tela do aluno: http://127.0.0.1:8050/frontend/
+Dashboard: http://127.0.0.1:8050/dashboard/
+Status do agente: http://127.0.0.1:8050/api/agent-status
+```
+
+## 20. Configuração Recomendada no Render
+
+No Render, os endereços `127.0.0.1` apontam para o próprio servidor do Render, não para o computador local do usuário. Portanto, LM Studio e Langflow locais não ficam disponíveis automaticamente em produção.
+
+Para evitar lentidão ou tentativa de conexão com recursos locais indisponíveis, recomenda-se configurar o ambiente do Render assim:
+
+```text
+OPENAI_API_KEY=sua-chave-da-api
+OPENAI_MODEL=gpt-5
+AGENT_PROVIDER=openai
+AGENT_PROVIDERS=openai,rules
+LANGFLOW_FLOW_ID=
+```
+
+Se a API OpenAI não estiver disponível ou não houver cota, o Render pode ser configurado para usar apenas regras internas:
+
+```text
+AGENT_PROVIDERS=rules
+```
+
+O arquivo `requirements.txt` deve conter somente as dependências necessárias para executar o backend da aplicação. O Langflow, por ser recurso local/opcional, fica no arquivo `requirements-local.txt`. O LM Studio deve ser instalado separadamente como aplicativo desktop.
+
+## 21. Testes Funcionais Documentados
+
+### Teste 1: Cadastro do aluno
+
+Entrada:
+
+- Nome
+- Série
+- Matrícula
+
+Resultado esperado:
+
+- O aluno é cadastrado.
+- O sistema redireciona para a tela do teste.
+- Nome, série e matrícula aparecem no frontend.
+
+### Teste 2: Escrita das palavras
+
+Entrada:
+
+- O aluno ouve os áudios e preenche os cinco campos.
+
+Resultado esperado:
+
+- Os campos são liberados em ordem.
+- O aluno pode escrever sem limite fixo de caracteres.
+- O Enter avança para o próximo campo.
+- O botão Finalizar só libera após as cinco respostas.
+
+### Teste 3: Envio das respostas
+
+Entrada:
+
+- Finalização do teste.
+
+Resultado esperado:
+
+- As respostas são enviadas ao backend.
+- O sistema salva os dados nos CSVs.
+- A página volta para o cadastro.
+
+### Teste 4: Análise de erros
+
+Entrada:
+
+- Respostas do aluno comparadas ao gabarito.
+
+Resultado esperado:
+
+- O sistema classifica os erros.
+- O score total é calculado.
+- O nível de erro é exibido no dashboard.
+
+### Teste 5: Dashboard do professor
+
+Entrada:
+
+- Seleção do aluno no dashboard.
+
+Resultado esperado:
+
+- Exibição de nome, matrícula, nível, score e erros.
+- Exibição da tabela detalhada.
+- Exibição do mapa de calor de níveis.
+
+### Teste 6: RAG
+
+Entrada:
+
+- Consulta a partir dos erros do aluno.
+
+Resultado esperado:
+
+- O sistema recupera trechos de `rag_base.txt`.
+- O dashboard informa que a base textual foi consultada.
+- A intervenção considera o contexto pedagógico recuperado.
+
+### Teste 7: Agente GPT-5
+
+Entrada:
+
+- GPT-5 ligado no painel do agente.
+- Chave OpenAI válida no `.env`.
+
+Resultado esperado:
+
+- O sistema tenta usar a API GPT primeiro.
+- A resposta aparece no assistente de intervenção.
+- O status técnico registra a camada utilizada.
+
+### Teste 8: Langflow
+
+Entrada:
+
+- Langflow ligado no painel.
+- `LANGFLOW_FLOW_ID` configurado.
+
+Resultado esperado:
+
+- O backend envia o prompt ao fluxo Langflow.
+- O fluxo encaminha ao modelo configurado.
+- A resposta retorna ao dashboard.
+
+### Teste 9: LM Studio
+
+Entrada:
+
+- LM Studio ligado no painel.
+- Servidor local ativo em `127.0.0.1:1234`.
+
+Resultado esperado:
+
+- O backend tenta obter resposta do modelo local.
+- Se o modelo responder, a intervenção aparece no dashboard.
+
+### Teste 10: Regras internas
+
+Entrada:
+
+- Regras internas ligadas.
+- Camadas de IA desligadas ou indisponíveis.
+
+Resultado esperado:
+
+- O sistema continua funcionando.
+- O dashboard mostra recomendação interna baseada nos erros.
+
+## 22. Segurança e Privacidade
+
+O projeto manipula dados de alunos, como nome, série, matrícula e respostas escritas. Por isso:
+
+- Os CSVs devem ser revisados antes de qualquer publicação.
+- O arquivo `.env` não deve ser enviado ao GitHub.
+- Chaves de API nunca devem ser colocadas no código.
+- Dados de alunos devem ser tratados de acordo com boas práticas de privacidade e proteção de dados.
+
+## 23. Limitações do Protótipo
+
+- O classificador Naive Bayes foi treinado com exemplos sintéticos, não com uma base ampla real.
+- A análise automática não substitui avaliação pedagógica do professor.
+- A classificação de erro ainda pode precisar de refinamento para casos complexos.
+- O uso da API GPT depende de chave válida e cota disponível.
+- O Langflow e o LM Studio dependem de servidores locais em execução.
+- O RAG depende da qualidade do texto extraído do PDF.
+
+## 24. Trabalhos Futuros
+
+- Treinar o classificador com dados reais validados por professores.
+- Melhorar a análise de frases completas.
+- Criar servidor MCP com ferramentas próprias.
+- Adicionar exportação de relatórios.
+- Adicionar filtros por turma, data e nível.
+- Implementar autenticação para professores.
+- Criar banco de dados relacional em substituição aos CSVs.
+- Validar pedagogicamente as intervenções geradas.
+
+## 25. Referências
+
+Bird, Steven. NLTK: The Natural Language Toolkit. Proceedings of the COLING/ACL Interactive Presentation Sessions, 2006.
+
+Ferreiro, Emilia; Teberosky, Ana. Psicogênese da Língua Escrita. Porto Alegre: Artmed.
+
+Levenshtein, Vladimir I. Binary Codes Capable of Correcting Deletions, Insertions, and Reversals. Soviet Physics Doklady, 1966.
+
+Lewis, Patrick; Perez, Ethan; Piktus, Aleksandra; et al. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. Advances in Neural Information Processing Systems, 2020.
+
+Manning, Christopher D.; Raghavan, Prabhakar; Schütze, Hinrich. Introduction to Information Retrieval. Cambridge University Press, 2008.
+
+OpenAI. GPT-4 Technical Report. arXiv preprint arXiv:2303.08774, 2023.
+
+Siemens, George; Baker, Ryan. Learning Analytics and Educational Data Mining. Proceedings of the 2nd International Conference on Learning Analytics and Knowledge, 2013.
+
+Valente, José Armando. O Computador na Sociedade do Conhecimento. UNICAMP, 1999.
+
+## 26. Palavras-chave
+
+Psicogênese da Escrita; Alfabetização; Processamento de Linguagem Natural; NLTK; Naive Bayes; RAG; Agente de IA; Langflow; LM Studio; OpenAI API; Dashboard Pedagógico.

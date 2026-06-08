@@ -34,6 +34,27 @@ except ImportError:
 # 📂 DADOS
 # ============================================
 BASE_DIR = Path(__file__).resolve().parent
+
+
+def carregar_env_local():
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        return
+
+    for linha in env_path.read_text(encoding="utf-8").splitlines():
+        linha = linha.strip()
+        if not linha or linha.startswith("#") or "=" not in linha:
+            continue
+
+        chave, valor = linha.split("=", 1)
+        chave = chave.strip()
+        valor = valor.strip().strip('"').strip("'")
+        if chave:
+            os.environ[chave] = valor
+
+
+carregar_env_local()
+
 FRONTEND_DIR = BASE_DIR / "psicogenise-main"
 SUBMISSIONS_FILE = BASE_DIR / "submissoes_frontend.csv"
 STUDENTS_FILE = BASE_DIR / "cadastros_alunos.csv"
@@ -43,14 +64,54 @@ RAG_PDF_PATH = Path(os.getenv(
 ))
 RAG_TEXT_PATH = Path(os.getenv("PSICOGENISE_RAG_TEXT", BASE_DIR / "rag_base.txt"))
 LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://127.0.0.1:1234/v1/chat/completions")
+LANGFLOW_URL = os.getenv("LANGFLOW_URL", os.getenv("LANGFLOW_SERVER_URL", "http://127.0.0.1:7860")).strip().rstrip("/")
+LANGFLOW_FLOW_ID = os.getenv("LANGFLOW_FLOW_ID", "").strip()
+LANGFLOW_API_KEY = os.getenv("LANGFLOW_API_KEY", "").strip()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5").strip()
 OPENAI_RESPONSES_URL = os.getenv("OPENAI_RESPONSES_URL", "https://api.openai.com/v1/responses").strip()
+AGENT_PROVIDER = os.getenv("AGENT_PROVIDER", "auto").strip().lower()
+AGENT_PROVIDERS = os.getenv("AGENT_PROVIDERS", "openai,langflow,lm_studio,rules").strip().lower()
 RAG_CHUNKS = None
+AGENT_RUNTIME_STATUS = {
+    "ultimo_provedor": "Ainda nao executado",
+    "ultima_origem": "Nenhuma pergunta/intervencao nesta sessao",
+    "ultimo_erro_openai": "",
+}
 
 RESULTADOS_COLUMNS = ["aluno_id", "nome", "serie", "matricula", "texto", "gabarito", "nivel", "score", "nivel_erro"]
 ERROS_COLUMNS = ["aluno", "correto", "tipo", "distancia", "aluno_id", "nome", "matricula"]
 INTERVENCOES_COLUMNS = ["aluno_id", "nome", "matricula", "recomendacoes"]
+AGENT_PROVIDER_LABELS = {
+    "openai": "GPT-5",
+    "langflow": "Langflow",
+    "lm_studio": "LM Studio",
+    "rules": "Regras internas",
+}
+AGENT_PROVIDER_VALUES = set(AGENT_PROVIDER_LABELS)
+
+
+def normalizar_provedores_ativos(valores):
+    if isinstance(valores, str):
+        valores = valores.split(",")
+    valores = {
+        str(valor).strip().lower()
+        for valor in (valores or [])
+        if str(valor).strip().lower() in AGENT_PROVIDER_VALUES
+    }
+    return valores or {"rules"}
+
+
+def ordenar_provedores_para_tela(valores):
+    valores = set(valores or [])
+    return [
+        provedor
+        for provedor in ["openai", "langflow", "lm_studio", "rules"]
+        if provedor in valores
+    ]
+
+
+AGENT_PROVIDER_ACTIVE = normalizar_provedores_ativos(AGENT_PROVIDERS)
 
 
 def carregar_csv(nome_arquivo, colunas):
@@ -546,6 +607,253 @@ def buscar_contexto_rag(resumo, nivel, score, limite=3):
     return [chunk for _, chunk in ranqueados[:limite]]
 
 
+def registrar_provedor_agente(provedor, origem):
+    AGENT_RUNTIME_STATUS["ultimo_provedor"] = provedor
+    AGENT_RUNTIME_STATUS["ultima_origem"] = origem
+
+
+def openai_chave_configurada():
+    placeholders = {
+        "",
+        "cole-sua-chave-nova-aqui",
+        "sua-chave-da-api",
+        "sk-...",
+    }
+    return OPENAI_API_KEY.strip() not in placeholders
+
+
+def provedores_ativos_agente():
+    return set(AGENT_PROVIDER_ACTIVE)
+
+
+def configurar_provedores_ativos(valores):
+    global AGENT_PROVIDER_ACTIVE
+    AGENT_PROVIDER_ACTIVE = normalizar_provedores_ativos(valores)
+    AGENT_RUNTIME_STATUS["ultima_origem"] = "Configuracao manual do fluxo"
+    return ordenar_provedores_para_tela(AGENT_PROVIDER_ACTIVE)
+
+
+def regras_internas_ativas():
+    return "rules" in AGENT_PROVIDER_ACTIVE
+
+
+def ordem_provedores_agente():
+    ordens = {
+        "openai": ["openai", "langflow", "lm_studio"],
+        "gpt": ["openai", "langflow", "lm_studio"],
+        "langflow": ["langflow", "openai", "lm_studio"],
+        "lm_studio": ["lm_studio", "openai", "langflow"],
+        "local": ["lm_studio", "openai", "langflow"],
+        "auto": ["langflow", "openai", "lm_studio"],
+    }
+    ativos = provedores_ativos_agente()
+    return [
+        provedor
+        for provedor in ordens.get(AGENT_PROVIDER, ordens["auto"])
+        if provedor in ativos
+    ]
+
+
+def nome_provedor_agente(provedor):
+    nomes = {
+        "openai": "OpenAI GPT",
+        "langflow": "Langflow",
+        "lm_studio": "LM Studio local",
+    }
+    return nomes.get(provedor, "Regras internas")
+
+
+def lm_studio_models_url():
+    if "/v1/" in LM_STUDIO_URL:
+        return LM_STUDIO_URL.split("/v1/", 1)[0].rstrip("/") + "/v1/models"
+    return LM_STUDIO_URL.rstrip("/") + "/v1/models"
+
+
+def langflow_run_url():
+    if not LANGFLOW_URL or not LANGFLOW_FLOW_ID:
+        return ""
+    return f"{LANGFLOW_URL}/api/v1/run/{LANGFLOW_FLOW_ID}"
+
+
+def verificar_langflow_online():
+    if not LANGFLOW_URL:
+        return False
+    try:
+        request_langflow = urllib.request.Request(f"{LANGFLOW_URL}/docs", method="GET")
+        with urllib.request.urlopen(request_langflow, timeout=2) as response:
+            return 200 <= response.status < 500
+    except (urllib.error.URLError, TimeoutError):
+        return False
+
+
+def verificar_lm_studio_online():
+    try:
+        request_lm = urllib.request.Request(lm_studio_models_url(), method="GET")
+        with urllib.request.urlopen(request_lm, timeout=2) as response:
+            return 200 <= response.status < 300
+    except (urllib.error.URLError, TimeoutError):
+        return False
+
+
+def obter_status_fluxo_agente():
+    chunks = carregar_chunks_rag()
+    langflow_configurado = bool(LANGFLOW_FLOW_ID)
+    langflow_online = verificar_langflow_online()
+    openai_configurado = openai_chave_configurada()
+    lm_online = verificar_lm_studio_online()
+    ordem = ordem_provedores_agente()
+    ativos = provedores_ativos_agente()
+
+    primeira_camada = "Regras internas"
+    for provedor in ordem:
+        if provedor == "langflow" and langflow_configurado:
+            primeira_camada = "Langflow"
+            break
+        if provedor == "openai" and openai_configurado:
+            primeira_camada = "OpenAI GPT"
+            break
+        if provedor == "lm_studio" and lm_online:
+            primeira_camada = "LM Studio local"
+            break
+    else:
+        if not regras_internas_ativas():
+            primeira_camada = "Nenhuma camada ativa"
+
+    return {
+        "agente_preferido": AGENT_PROVIDER,
+        "provedores_ativos": sorted(ativos),
+        "ordem_provedores": (
+            [nome_provedor_agente(provedor) for provedor in ordem]
+            + (["Regras internas"] if regras_internas_ativas() else [])
+        ),
+        "langflow_configurado": langflow_configurado,
+        "langflow_online": langflow_online,
+        "langflow_url": LANGFLOW_URL,
+        "langflow_flow_id": LANGFLOW_FLOW_ID or "Nao configurado",
+        "openai_configurado": openai_configurado,
+        "openai_modelo": OPENAI_MODEL or "Nao informado",
+        "lm_studio_online": lm_online,
+        "lm_studio_url": LM_STUDIO_URL,
+        "rag_carregado": bool(chunks),
+        "rag_trechos": len(chunks),
+        "primeira_camada": primeira_camada,
+        "fluxo": [
+            "Resposta direta do dashboard quando a pergunta pede dado do aluno",
+            *[
+                f"{nome_provedor_agente(provedor)} na ordem configurada"
+                for provedor in ordem
+            ],
+            "Regras internas se estiverem ligadas e os modelos nao responderem",
+        ],
+        **AGENT_RUNTIME_STATUS,
+    }
+
+
+@server.get("/api/agent-status")
+def api_agent_status():
+    return jsonify(obter_status_fluxo_agente())
+
+
+def valor_por_caminho(dados, caminho):
+    atual = dados
+    for chave in caminho:
+        try:
+            atual = atual[chave]
+        except (KeyError, IndexError, TypeError):
+            return ""
+    return atual if isinstance(atual, str) else ""
+
+
+def extrair_texto_langflow(result, prompt_original=""):
+    caminhos_preferidos = [
+        ["outputs", 0, "outputs", 0, "results", "message", "text"],
+        ["outputs", 0, "outputs", 0, "results", "text", "data", "text"],
+        ["outputs", 0, "outputs", 0, "artifacts", "message"],
+        ["outputs", 0, "outputs", 0, "messages", 0, "message"],
+        ["outputs", 0, "outputs", 0, "outputs", "message", "message"],
+    ]
+
+    for caminho in caminhos_preferidos:
+        texto = valor_por_caminho(result, caminho).strip()
+        if texto and texto.strip() != str(prompt_original).strip():
+            return texto
+
+    candidatos = []
+
+    def coletar(obj):
+        if isinstance(obj, dict):
+            for chave in ["text", "content", "message", "output", "response"]:
+                valor = obj.get(chave)
+                if isinstance(valor, str) and valor.strip():
+                    candidatos.append(valor.strip())
+            for valor in obj.values():
+                coletar(valor)
+        elif isinstance(obj, list):
+            for valor in obj:
+                coletar(valor)
+
+    coletar(result)
+    prompt_limpo = str(prompt_original).strip()
+    candidatos = [texto for texto in candidatos if texto != prompt_limpo]
+    return candidatos[-1] if candidatos else ""
+
+
+def preparar_prompt_langflow(prompt):
+    return f"""
+Voce esta no fluxo Langflow do projeto Psicogenise.
+Atue como assistente pedagogico de alfabetizacao para professores do ensino fundamental.
+
+Contexto importante:
+- O sistema ja analisou as escritas do aluno com NLTK e regras pedagogicas.
+- O sistema ja recuperou trechos da base RAG local.
+- A base RAG vem do PDF/TXT "Psicogenese da lingua escrita".
+- Use somente os dados do aluno, os erros/acertos e os trechos RAG fornecidos abaixo.
+
+Como responder:
+- Seja claro, acolhedor e objetivo.
+- Ajude o professor a entender o resultado do aluno.
+- Sugira intervencoes praticas de sala de aula.
+- Nao faca diagnostico clinico.
+- Nao cite literalmente o livro.
+- Nao invente dados que nao aparecem no contexto.
+
+Entrada completa enviada pela aplicacao:
+{prompt}
+""".strip()
+
+
+def chamar_langflow(prompt, session_id="psicogenise-local"):
+    url = langflow_run_url()
+    if not url:
+        return ""
+
+    prompt_langflow = preparar_prompt_langflow(prompt)
+    payload = {
+        "input_value": prompt_langflow,
+        "input_type": "chat",
+        "output_type": "chat",
+        "session_id": session_id or "psicogenise-local",
+    }
+    data = json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if LANGFLOW_API_KEY:
+        headers["x-api-key"] = LANGFLOW_API_KEY
+
+    request_langflow = urllib.request.Request(
+        url,
+        data=data,
+        headers=headers,
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request_langflow, timeout=120) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            return extrair_texto_langflow(result, prompt_langflow)
+    except (urllib.error.URLError, KeyError, TimeoutError, json.JSONDecodeError):
+        return ""
+
+
 def extrair_texto_resposta_openai(result):
     output_text = result.get("output_text")
     if isinstance(output_text, str) and output_text.strip():
@@ -560,7 +868,7 @@ def extrair_texto_resposta_openai(result):
 
 
 def chamar_agente_openai(prompt):
-    if not OPENAI_API_KEY:
+    if not openai_chave_configurada():
         return ""
 
     system_prompt = (
@@ -597,8 +905,18 @@ def chamar_agente_openai(prompt):
     try:
         with urllib.request.urlopen(request_openai, timeout=30) as response:
             result = json.loads(response.read().decode("utf-8"))
+            AGENT_RUNTIME_STATUS["ultimo_erro_openai"] = ""
             return extrair_texto_resposta_openai(result)
-    except (urllib.error.URLError, KeyError, TimeoutError, json.JSONDecodeError):
+    except urllib.error.HTTPError as exc:
+        try:
+            erro = json.loads(exc.read().decode("utf-8"))
+            mensagem = erro.get("error", {}).get("message", str(erro))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            mensagem = exc.reason or "Erro HTTP na API OpenAI"
+        AGENT_RUNTIME_STATUS["ultimo_erro_openai"] = f"HTTP {exc.code}: {mensagem}"[:240]
+        return ""
+    except (urllib.error.URLError, KeyError, TimeoutError, json.JSONDecodeError) as exc:
+        AGENT_RUNTIME_STATUS["ultimo_erro_openai"] = str(exc)[:240]
         return ""
 
 
@@ -632,6 +950,42 @@ def chamar_lm_studio(prompt):
             return result["choices"][0]["message"]["content"].strip()
     except (urllib.error.URLError, KeyError, TimeoutError, json.JSONDecodeError):
         return ""
+
+
+def chamar_provedor_agente(provedor, prompt, session_id):
+    if provedor == "openai":
+        resposta = chamar_agente_openai(prompt)
+        if resposta:
+            registrar_provedor_agente("OpenAI GPT", session_id)
+        return resposta
+
+    if provedor == "langflow":
+        resposta = chamar_langflow(prompt, session_id=session_id)
+        if resposta:
+            registrar_provedor_agente("Langflow + LM Studio", session_id)
+        return resposta
+
+    if provedor == "lm_studio":
+        resposta = chamar_lm_studio(prompt)
+        if resposta:
+            registrar_provedor_agente("LM Studio local", session_id)
+        return resposta
+
+    return ""
+
+
+def chamar_agente_com_fallback(prompt, origem, session_id):
+    for provedor in ordem_provedores_agente():
+        resposta = chamar_provedor_agente(provedor, prompt, session_id)
+        if resposta:
+            AGENT_RUNTIME_STATUS["ultima_origem"] = origem
+            return resposta
+
+    if regras_internas_ativas():
+        registrar_provedor_agente("Regras internas", origem)
+    else:
+        registrar_provedor_agente("Nenhuma camada ativa", origem)
+    return ""
 
 
 def compactar_respostas_para_prompt(df_a):
@@ -732,7 +1086,15 @@ def gerar_intervencao_rag(resumo, nivel, score, aluno_info=None, df_a=None, df_e
     contexto = buscar_contexto_rag(resumo, nivel, score)
 
     if not contexto:
-        return nivel_erro, " | ".join(recomendacoes), []
+        if regras_internas_ativas():
+            registrar_provedor_agente("Regras internas", "Intervencao inicial sem trechos RAG")
+            return nivel_erro, " | ".join(recomendacoes), []
+        registrar_provedor_agente("Nenhuma camada ativa", "Intervencao inicial sem trechos RAG")
+        return (
+            nivel_erro,
+            "Nenhuma camada ativa respondeu. Ligue GPT-5, Langflow, LM Studio ou Regras internas para gerar a intervencao.",
+            [],
+        )
 
     aluno_info = aluno_info if aluno_info is not None else {}
     nome = texto_valido(aluno_info.get("nome", "")) or "Aluno sem nome"
@@ -763,7 +1125,7 @@ Producoes escritas do aluno:
 Analise detalhada de acertos e erros:
 {erros_prompt}
 
-Base pedagogica recuperada do RAG:
+Base pedagogica recuperada do RAG local (PDF/TXT Psicogenese da lingua escrita):
 {contexto_prompt}
 
 Tarefa:
@@ -776,13 +1138,20 @@ Organize em quatro partes curtas:
 Nao cite literalmente o livro. Nao faca diagnostico clinico. Use linguagem clara, pratica e aplicavel em sala.
 """
 
-    resposta_gpt = chamar_agente_openai(prompt)
-    if resposta_gpt:
-        return nivel_erro, resposta_gpt, contexto
+    resposta_agente = chamar_agente_com_fallback(
+        prompt,
+        origem="Intervencao inicial do dashboard",
+        session_id=f"intervencao-{matricula}",
+    )
+    if resposta_agente:
+        return nivel_erro, resposta_agente, contexto
 
-    resposta_llm = chamar_lm_studio(prompt)
-    if resposta_llm:
-        return nivel_erro, resposta_llm, contexto
+    if not regras_internas_ativas():
+        return (
+            nivel_erro,
+            "Nenhuma camada ativa respondeu. Ligue GPT-5, Langflow, LM Studio ou Regras internas para gerar a intervencao.",
+            contexto,
+        )
 
     fallback = " | ".join(recomendacoes)
     fallback += " | Base RAG consultada: Psicogenese da lingua escrita"
@@ -923,6 +1292,7 @@ def responder_pergunta_professor(pergunta, aluno_id, historico=None):
     nivel_erro, recomendacoes = gerar_recomendacoes(resumo, nivel, score)
     resposta_direta = responder_dado_direto(pergunta, aluno_info, resumo, score, nivel, df_a=df_a, df_e=df_e)
     if resposta_direta:
+        registrar_provedor_agente("Resposta direta do dashboard", "Chat do professor")
         return resposta_direta
 
     contexto = buscar_contexto_rag(resumo, nivel, score)
@@ -956,22 +1326,209 @@ Producoes escritas:
 Erros detalhados:
 {compactar_erros_para_prompt(df_e)}
 
-Base pedagogica recuperada:
+Base pedagogica recuperada do RAG local (PDF/TXT Psicogenese da lingua escrita):
 {contexto_prompt}
 
 Responda ao professor em linguagem clara, objetiva e acolhedora.
 Inclua uma sugestao pratica de atividade e uma forma simples de acompanhar evolucao.
 Nao faca diagnostico clinico e nao cite literalmente o material.
 """
-    resposta = chamar_agente_openai(prompt) or chamar_lm_studio(prompt)
-    if resposta:
-        return resposta
+    resposta_agente = chamar_agente_com_fallback(
+        prompt,
+        origem="Chat do professor",
+        session_id=f"professor-{aluno_id}",
+    )
+    if resposta_agente:
+        return resposta_agente
+
+    if not regras_internas_ativas():
+        return "Nenhuma camada ativa respondeu. Ligue GPT-5, Langflow, LM Studio ou Regras internas para continuar."
 
     return (
         "Sugestao: retome as escritas do aluno uma a uma, compare oralmente o que ele escreveu "
         "com o som esperado e proponha uma atividade curta de reescrita mediada. "
         f"Foco inicial: {' | '.join(recomendacoes)}."
     )
+
+
+def pill_status(label, value, active):
+    return html.Div([
+        html.Span(label, style={
+            "fontSize": "11px",
+            "fontWeight": "700",
+            "color": "#475569",
+            "textTransform": "uppercase",
+        }),
+        html.Span(value, style={
+            "fontSize": "13px",
+            "fontWeight": "800",
+            "color": "#065f46" if active else "#7f1d1d",
+        }),
+    ], style={
+        "display": "grid",
+        "gap": "3px",
+        "padding": "9px 10px",
+        "border": "1px solid rgba(37, 99, 235, 0.12)",
+        "borderRadius": "8px",
+        "background": "rgba(255, 255, 255, 0.7)",
+        "minWidth": "140px",
+    })
+
+
+def status_provedor_para_tela(status, provedor):
+    ativos = set(status.get("provedores_ativos", []))
+    if provedor not in ativos:
+        return "desligado", False
+
+    if provedor == "openai":
+        if not status["openai_configurado"]:
+            return "sem chave", False
+        return f"ligado ({status['openai_modelo']})", True
+
+    if provedor == "langflow":
+        if not status["langflow_configurado"]:
+            return "sem fluxo", False
+        return "ligado" if status["langflow_online"] else "offline", status["langflow_online"]
+
+    if provedor == "lm_studio":
+        return "ligado" if status["lm_studio_online"] else "offline", status["lm_studio_online"]
+
+    if provedor == "rules":
+        return "ligadas", True
+
+    return "desligado", False
+
+
+def texto_ordem_agente(status):
+    ordem = status.get("ordem_provedores", [])
+    if not ordem:
+        return "Nenhuma camada ativa"
+    return " -> ".join(ordem)
+
+
+def renderizar_fluxo_agente():
+    status = obter_status_fluxo_agente()
+    ativos = status.get("provedores_ativos", [])
+    openai_texto, openai_ok = status_provedor_para_tela(status, "openai")
+    langflow_texto, langflow_ok = status_provedor_para_tela(status, "langflow")
+    lm_texto, lm_ok = status_provedor_para_tela(status, "lm_studio")
+    rules_texto, rules_ok = status_provedor_para_tela(status, "rules")
+    return html.Div([
+        html.Div([
+            html.Div("Fluxo do agente", style={
+                "fontWeight": "800",
+                "fontSize": "14px",
+                "color": "#0f172a",
+            }),
+            html.A("Ver JSON tecnico", href="/api/agent-status", target="_blank", style={
+                "fontSize": "12px",
+                "color": "#2563eb",
+                "fontWeight": "700",
+                "textDecoration": "none",
+            }),
+        ], style={
+            "display": "flex",
+            "justifyContent": "spaceBetween",
+            "alignItems": "center",
+            "gap": "10px",
+            "marginBottom": "8px",
+        }),
+        html.Div([
+            html.Div("Ligar/desligar camadas", style={
+                "fontSize": "12px",
+                "fontWeight": "700",
+                "color": "#334155",
+                "marginBottom": "6px",
+            }),
+            dcc.Checklist(
+                id="agent-provider-toggle",
+                options=[
+                    {"label": "GPT-5", "value": "openai"},
+                    {"label": "Langflow", "value": "langflow"},
+                    {"label": "LM Studio", "value": "lm_studio"},
+                    {"label": "Regras internas", "value": "rules"},
+                ],
+                value=ordenar_provedores_para_tela(ativos),
+                inputStyle={"marginRight": "6px"},
+                labelStyle={
+                    "display": "inline-flex",
+                    "alignItems": "center",
+                    "gap": "4px",
+                    "padding": "7px 10px",
+                    "border": "1px solid rgba(37, 99, 235, 0.18)",
+                    "borderRadius": "999px",
+                    "background": "rgba(255, 255, 255, 0.86)",
+                    "fontSize": "12px",
+                    "fontWeight": "700",
+                    "color": "#1e293b",
+                    "cursor": "pointer",
+                    "marginRight": "7px",
+                    "marginBottom": "7px",
+                },
+                style={"display": "flex", "flexWrap": "wrap", "gap": "0"},
+            ),
+        ], style={
+            "marginBottom": "8px",
+            "padding": "8px",
+            "border": "1px solid rgba(37, 99, 235, 0.10)",
+            "borderRadius": "8px",
+            "background": "rgba(255,255,255,0.52)",
+        }),
+        html.Div([
+            pill_status(
+                "Langflow",
+                langflow_texto,
+                langflow_ok,
+            ),
+            pill_status(
+                "OpenAI",
+                openai_texto,
+                openai_ok,
+            ),
+            pill_status(
+                "LM Studio",
+                lm_texto,
+                lm_ok,
+            ),
+            pill_status(
+                "Regras",
+                rules_texto,
+                rules_ok,
+            ),
+            pill_status(
+                "RAG",
+                f"{status['rag_trechos']} trechos" if status["rag_carregado"] else "sem base",
+                status["rag_carregado"],
+            ),
+            pill_status(
+                "Ultima camada",
+                status["ultimo_provedor"],
+                status["ultimo_provedor"] not in ["Ainda nao executado", "Regras internas"],
+            ),
+        ], style={
+            "display": "grid",
+            "gridTemplateColumns": "repeat(auto-fit, minmax(140px, 1fr))",
+            "gap": "8px",
+        }),
+        html.Div(
+            f"Modo: {status['agente_preferido']}. "
+            f"Ordem atual: {texto_ordem_agente(status)}. "
+            f"Ultima origem: {status['ultima_origem']}.",
+            id="agent-provider-mode-text",
+            style={
+                "marginTop": "8px",
+                "fontSize": "12px",
+                "color": "#475569",
+                "lineHeight": "1.35",
+            },
+        ),
+    ], id="agent-flow-panel", style={
+        "margin": "10px 0 12px",
+        "padding": "10px",
+        "border": "1px solid rgba(37, 99, 235, 0.12)",
+        "borderRadius": "8px",
+        "background": "rgba(239, 246, 255, 0.62)",
+    })
 
 
 def renderizar_chat_professor(historico):
@@ -1607,6 +2164,7 @@ def atualizar(aluno_id):
             "gap": "12px",
             "marginBottom": "12px",
         }),
+        renderizar_fluxo_agente(),
         dcc.Markdown(intervencao_markdown, style={
             "background": "rgba(248, 250, 252, 0.78)",
             "border": "1px solid rgba(37, 99, 235, 0.12)",
@@ -1749,6 +2307,16 @@ def conversar_com_assistente(n_clicks, clear_clicks, pergunta, aluno_id, histori
         "resposta": str(resposta or ""),
     }]
     return renderizar_chat_professor(historico_atualizado), "", historico_atualizado
+
+
+@app.callback(
+    Output("agent-flow-panel", "children"),
+    [Input("agent-provider-toggle", "value")],
+    prevent_initial_call=True,
+)
+def atualizar_camadas_agente(valores):
+    configurar_provedores_ativos(valores)
+    return renderizar_fluxo_agente().children
 
 
 @app.callback(
